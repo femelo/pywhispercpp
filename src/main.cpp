@@ -43,15 +43,14 @@ struct whisper_context_wrapper {
 
 
 // struct inside params
-struct greedy{
+struct greedy {
     int best_of;
 };
 
-struct beam_search{
+struct beam_search {
     int beam_size;
     float patience;
 };
-
 
 struct whisper_model_loader_wrapper {
     whisper_model_loader* ptr;
@@ -299,14 +298,17 @@ int whisper_ctx_init_openvino_encoder_wrapper(struct whisper_context_wrapper * c
 struct WhisperFullParamsWrapper : public whisper_full_params {
   std::string initial_prompt_str;
   std::string suppress_regex_str;
+  std::string vad_model_path_str;
 public:
   py::function py_progress_callback;
   WhisperFullParamsWrapper(const whisper_full_params& params = whisper_full_params())
     : whisper_full_params(params),
       initial_prompt_str(params.initial_prompt ? params.initial_prompt : ""),
-      suppress_regex_str(params.suppress_regex ? params.suppress_regex : "") {
+      suppress_regex_str(params.suppress_regex ? params.suppress_regex : ""),
+      vad_model_path_str(params.vad_model_path ? params.vad_model_path : "") {
     initial_prompt = initial_prompt_str.empty() ? nullptr : initial_prompt_str.c_str();
     suppress_regex = suppress_regex_str.empty() ? nullptr : suppress_regex_str.c_str();
+    vad_model_path = vad_model_path_str.empty() ? nullptr : vad_model_path_str.c_str();
     // progress callback
     progress_callback_user_data = this;
     progress_callback = [](struct whisper_context* ctx, struct whisper_state* state, int progress, void* user_data) {
@@ -327,10 +329,12 @@ public:
     : whisper_full_params(static_cast<whisper_full_params>(other)),  // Copy base struct
       initial_prompt_str(other.initial_prompt_str),
       suppress_regex_str(other.suppress_regex_str),
+      vad_model_path_str(other.vad_model_path_str),
       py_progress_callback(other.py_progress_callback) {
     // Reset pointers to new string copies
     initial_prompt = initial_prompt_str.empty() ? nullptr : initial_prompt_str.c_str();
     suppress_regex = suppress_regex_str.empty() ? nullptr : suppress_regex_str.c_str();
+    vad_model_path = vad_model_path_str.empty() ? nullptr : vad_model_path_str.c_str();
     progress_callback_user_data = this;
     progress_callback = [](struct whisper_context* ctx, struct whisper_state* state, int progress, void* user_data) {
       auto* self = static_cast<WhisperFullParamsWrapper*>(user_data);
@@ -353,6 +357,10 @@ public:
   void set_suppress_regex(const std::string& regex) {
     suppress_regex_str = regex;
     suppress_regex = suppress_regex_str.c_str();
+  }
+  void set_vad_model_path(const std::string& model_path) {
+    vad_model_path_str = model_path;
+    vad_model_path = vad_model_path_str.c_str();
   }
 };
 WhisperFullParamsWrapper  whisper_full_default_params_wrapper(enum whisper_sampling_strategy strategy) {
@@ -594,7 +602,17 @@ PYBIND11_MODULE(_pywhispercpp, m) {
                 << "grammar_rules=" << (self.grammar_rules ? "(whisper_grammar_element **)" : "None") << ", "
                 << "n_grammar_rules=" << self.n_grammar_rules << ", "
                 << "i_start_rule=" << self.i_start_rule << ", "
-                << "grammar_penalty=" << self.grammar_penalty
+                << "grammar_penalty=" << self.grammar_penalty << ", "
+                << "vad=" << (self.vad ? "True" : "False") << ", "
+                << "vad_model_path=" << (self.vad_model_path ? self.vad_model_path : "None") << ", "
+                << "vad_params={"
+                << "    threshold="               << self.vad_params.threshold << ", "
+                << "    min_speech_duration_ms="  << self.vad_params.min_speech_duration_ms << ", "
+                << "    min_silence_duration_ms=" << self.vad_params.min_silence_duration_ms << ", "
+                << "    max_speech_duration_s="   << self.vad_params.max_speech_duration_s << ", "
+                << "    speech_pad_ms="           << self.vad_params.speech_pad_ms << ", "
+                << "    samples_overlap="         << self.vad_params.samples_overlap
+                << "}"
                 << ")";
             return oss.str();
         });
@@ -659,10 +677,50 @@ PYBIND11_MODULE(_pywhispercpp, m) {
         .def_readwrite("logprob_thold", &WhisperFullParamsWrapper::logprob_thold)
         .def_readwrite("no_speech_thold", &WhisperFullParamsWrapper::no_speech_thold)
         // little hack for the internal stuct <undefined type issue>
-        .def_property("greedy", [](WhisperFullParamsWrapper &self) {return py::dict("best_of"_a=self.greedy.best_of);},
-                                 [](WhisperFullParamsWrapper &self, py::dict dict) {self.greedy.best_of = dict["best_of"].cast<int>();})
-        .def_property("beam_search", [](WhisperFullParamsWrapper &self) {return py::dict("beam_size"_a=self.beam_search.beam_size, "patience"_a=self.beam_search.patience);},
-                                [](WhisperFullParamsWrapper &self, py::dict dict) {self.beam_search.beam_size = dict["beam_size"].cast<int>(); self.beam_search.patience = dict["patience"].cast<float>();})
+        .def_property(
+            "greedy",
+            [](WhisperFullParamsWrapper &self) {
+                return py::dict("best_of"_a=self.greedy.best_of);
+            },
+            [](WhisperFullParamsWrapper &self, py::dict dict) {
+                self.greedy.best_of = dict["best_of"].cast<int>();
+            }
+        )
+        .def_property(
+            "beam_search",
+            [](WhisperFullParamsWrapper &self) {
+                return py::dict(
+                    "beam_size"_a=self.beam_search.beam_size,
+                    "patience"_a=self.beam_search.patience
+                );
+            },
+            [](WhisperFullParamsWrapper &self, py::dict dict) {
+                self.beam_search.beam_size = dict["beam_size"].cast<int>();
+                self.beam_search.patience = dict["patience"].cast<float>();
+            }
+        )
+        .def_readwrite("vad", &WhisperFullParamsWrapper::vad)
+        .def_property(
+            "vad_params",
+            [](WhisperFullParamsWrapper &self) {
+                return py::dict(
+                    "threshold"_a=self.vad_params.threshold,
+                    "min_speech_duration_ms"_a=self.vad_params.min_speech_duration_ms,
+                    "min_silence_duration_ms"_a=self.vad_params.min_silence_duration_ms,
+                    "max_speech_duration_s"_a=self.vad_params.max_speech_duration_s,
+                    "speech_pad_ms"_a=self.vad_params.speech_pad_ms,
+                    "samples_overlap"_a=self.vad_params.samples_overlap
+                );
+            },
+            [](WhisperFullParamsWrapper &self, py::dict dict) {
+                self.vad_params.threshold = dict["threshold"].cast<float>();
+                self.vad_params.min_speech_duration_ms = dict["min_speech_duration_ms"].cast<int>();
+                self.vad_params.min_silence_duration_ms = dict["min_silence_duration_ms"].cast<int>();
+                self.vad_params.max_speech_duration_s = dict["max_speech_duration_s"].cast<float>();
+                self.vad_params.speech_pad_ms = dict["speech_pad_ms"].cast<int>();
+                self.vad_params.samples_overlap = dict["samples_overlap"].cast<float>();
+            }
+        )
         .def_readwrite("new_segment_callback_user_data", &WhisperFullParamsWrapper::new_segment_callback_user_data)
         .def_readwrite("encoder_begin_callback_user_data", &WhisperFullParamsWrapper::encoder_begin_callback_user_data)
         .def_readwrite("logits_filter_callback_user_data", &WhisperFullParamsWrapper::logits_filter_callback_user_data);
