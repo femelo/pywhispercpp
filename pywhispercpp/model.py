@@ -12,7 +12,7 @@ import shutil
 import sys
 from pathlib import Path
 from time import time
-from typing import Callable, TextIO
+from typing import Any, Callable, TextIO
 import numpy as np
 import pywhispercpp.utils as utils
 import pywhispercpp.constants as constants
@@ -124,7 +124,7 @@ class Model:
         media: str | np.ndarray,
         n_processors: int | None = None,
         new_segment_callback: Callable[[Segment], None] | None = None,
-        **params,
+        **params: Any,
     ) -> list[Segment]:
         """
         Transcribes the media provided as input and returns list of `Segment` objects.

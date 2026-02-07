@@ -217,6 +217,7 @@ def redirect_stderr(to: bool | TextIO | str | None = False) -> Iterator:
     if to is False:
         # do nothing
         yield
+        return
 
     def _resolve_target(target):
         opened_stream = None
