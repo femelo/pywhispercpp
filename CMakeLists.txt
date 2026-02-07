@@ -9,4 +9,3 @@ pybind11_add_module(_pywhispercpp
 )
 
 target_link_libraries (_pywhispercpp PRIVATE whisper)
-
