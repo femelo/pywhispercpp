@@ -81,7 +81,7 @@ class Model:
         openvino_model_path: str | None = None,
         openvino_device: str = "CPU",
         openvino_cache_dir: str | None = None,
-        **params,
+        **params: Any,
     ):
         """
         :param model: The name of the model, one of the [AVAILABLE_MODELS](/pywhispercpp/#pywhispercpp.constants.AVAILABLE_MODELS),
@@ -97,10 +97,23 @@ class Model:
         :param params: keyword arguments for different whisper.cpp parameters,
                         see [PARAMS_SCHEMA](/pywhispercpp/#pywhispercpp.constants.PARAMS_SCHEMA)
         """
+        self.models_dir: str | None = models_dir
         if Path(model).is_file():
             self.model_path = model
         else:
             self.model_path = utils.download_model(model, models_dir)
+        self.vad: bool = params.get("vad", False)
+        self.vad_model_path: str = ""
+        vad_model = params.pop("vad_model", "")
+        if vad_model:
+            if Path(vad_model).is_file():
+                self.vad_model_path = vad_model
+            elif self.vad:
+                self.vad_model_path = utils.download_model(vad_model, models_dir, vad=True)
+            else:
+                pass
+            params["vad_model_path"] = self.vad_model_path
+
         self._ctx = None
         self._sampling_strategy = (
             pw.whisper_sampling_strategy.WHISPER_SAMPLING_GREEDY
@@ -149,6 +162,19 @@ class Model:
 
         # Handle extract_probability parameter
         self.extract_probability = params.pop("extract_probability", False)
+
+        self.vad = params.get("vad", self.vad)
+        if self.vad:
+            vad_model = params.pop("vad_model", self.vad_model_path) or constants.AVAILABLE_VAD_MODELS[0]
+            if Path(vad_model).is_file():
+                self.vad_model_path = vad_model
+            else:
+                self.vad_model_path = utils.download_model(
+                    vad_model,
+                    self.models_dir or ".",
+                    vad=True,
+                )
+            params["vad_model_path"] = self.vad_model_path
 
         # update params if any
         self._set_params(params)

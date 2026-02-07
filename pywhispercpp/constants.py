@@ -15,6 +15,8 @@ WHISPER_SAMPLE_RATE = _pwcpp.WHISPER_SAMPLE_RATE
 MODELS_BASE_URL = "https://huggingface.co/ggerganov/whisper.cpp"
 MODELS_PREFIX_URL = "resolve/main/ggml"
 
+VAD_MODELS_BASE_URL = "https://huggingface.co/ggml-org/whisper-vad"
+VAD_MODELS_PREFIX_URL = "resolve/main/ggml"
 
 PACKAGE_NAME = "pywhispercpp"
 
@@ -57,6 +59,12 @@ AVAILABLE_MODELS = [
     "tiny.en-q5_1",
     "tiny.en-q8_0",
 ]
+
+AVAILABLE_VAD_MODELS = [
+    "silero-v6.2.0",
+]
+
+
 PARAMS_SCHEMA = {  # as exactly presented in whisper.cpp
     "n_threads": {
         "type": int,

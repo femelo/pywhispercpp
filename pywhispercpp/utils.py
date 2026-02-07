@@ -17,24 +17,35 @@ from tqdm import tqdm
 
 from pywhispercpp.constants import (
     AVAILABLE_MODELS,
+    AVAILABLE_VAD_MODELS,
     MODELS_BASE_URL,
     MODELS_DIR,
     MODELS_PREFIX_URL,
+    VAD_MODELS_BASE_URL,
+    VAD_MODELS_PREFIX_URL,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def _get_model_url(model_name: str) -> str:
+def _get_model_url(model_name: str, vad: bool = False) -> str:
     """
     Returns the url of the `ggml` model
     :param model_name: name of the model
     :return: URL of the model
     """
-    return f"{MODELS_BASE_URL}/{MODELS_PREFIX_URL}-{model_name}.bin"
+    model_url = f"{MODELS_BASE_URL}/{MODELS_PREFIX_URL}-{model_name}.bin"
+    if vad:
+        model_url = f"{VAD_MODELS_BASE_URL}/{VAD_MODELS_PREFIX_URL}-{model_name}.bin"
+    return model_url
 
 
-def download_model(model_name: str, download_dir=None, chunk_size=1024) -> str:
+def download_model(
+    model_name: str,
+    download_dir: str | None = None,
+    chunk_size: int = 1024,
+    vad: bool = False,
+) -> str:
     """
     Helper function to download the `ggml` models
     :param model_name: name of the model, one of ::: constants.AVAILABLE_MODELS
@@ -43,20 +54,21 @@ def download_model(model_name: str, download_dir=None, chunk_size=1024) -> str:
 
     :return: Absolute path of the downloaded model
     """
-    if model_name not in AVAILABLE_MODELS:
+    available_models = AVAILABLE_MODELS if not vad else AVAILABLE_VAD_MODELS
+    if model_name not in available_models:
         logger.error(
-            f"Invalid model name `{model_name}`, available models are: {AVAILABLE_MODELS}"
+            f"Invalid model name `{model_name}`, available models are: {available_models}"
         )
         raise ValueError("Invalid model name")
     if download_dir is None:
-        download_dir = MODELS_DIR
+        download_dir = str(MODELS_DIR)
         logger.info(
             f"No download directory was provided, models will be downloaded to {download_dir}"
         )
 
     os.makedirs(download_dir, exist_ok=True)
 
-    url = _get_model_url(model_name=model_name)
+    url = _get_model_url(model_name=model_name, vad=vad)
     file_path = Path(download_dir) / os.path.basename(url)
     # check if the file is already there
     if file_path.exists():

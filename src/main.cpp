@@ -751,6 +751,15 @@ PYBIND11_MODULE(_pywhispercpp, m) {
         )
         .def_readwrite("vad", &WhisperFullParamsWrapper::vad)
         .def_property(
+            "vad_model_path",
+            [](WhisperFullParamsWrapper &self) {
+                return py::str(self.vad_model_path);
+            },
+            [](WhisperFullParamsWrapper &self, py::str model_path_str) {
+                self.set_vad_model_path(model_path_str);
+            }
+        )
+        .def_property(
             "vad_params",
             [](WhisperFullParamsWrapper &self) {
                 return py::dict(
