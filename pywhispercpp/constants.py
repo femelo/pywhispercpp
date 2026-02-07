@@ -262,25 +262,25 @@ PARAMS_SCHEMA = {  # as exactly presented in whisper.cpp
         "type": bool,
         "description": "vad",
         "options": None,
-        "default": True,
+        "default": False,
     },
     "vad_model_path": {
         "type": str,
         "description": "vad_model_path",
         "options": None,
-        "default": None,
+        "default": "",
     },
     "vad_params": {
         "type": dict,
         "description": "vad_params",
         "options": None,
-        "default": {
-            "threshold": 0,
-            "min_speech_duration_ms": 0.0,
-            "min_silence_duration_ms": 0,
-            "max_speech_duration_s": 0.0,
-            "speech_pad_ms": 0,
-            "samples_overlap": 0.0,
+        "default": {  # per whisper.cpp/examples/cli/cli.cpp
+            "threshold": 0.5,
+            "min_speech_duration_ms": 250,
+            "min_silence_duration_ms": 100,
+            "max_speech_duration_s": (1.0 - 2**-24) * (2 ** 128),  # according to float.h
+            "speech_pad_ms": 30,
+            "samples_overlap": 0.1,
         }
     },
     "extract_probability": {
