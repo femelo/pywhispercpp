@@ -166,6 +166,13 @@ def main():
                 default=default_,
                 help=descr_,
             )
+        elif type_ is bool:
+            parser.add_argument(
+                f"--{param.replace('_', '-')}",
+                type=lambda v: v.lower() in ("true", "yes", "y", "1"),
+                default=default_,
+                help=descr_,
+            )
         else:
             parser.add_argument(
                 f"--{param.replace('_', '-')}",
