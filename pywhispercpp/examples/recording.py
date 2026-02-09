@@ -1,18 +1,20 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 A simple example showcasing how to use pywhispercpp to transcribe a recording.
 """
+
 import argparse
+import importlib.metadata
 import logging
+
 import sounddevice as sd
+
 import pywhispercpp.constants
 from pywhispercpp.model import Model
-import importlib.metadata
 
 
-__version__ = importlib.metadata.version('pywhispercpp')
+__version__ = importlib.metadata.version("pywhispercpp")
 
 __header__ = f"""
 ===================================================================
@@ -35,10 +37,8 @@ class Recording:
     myrec.start()
     ```
     """
-    def __init__(self,
-                 duration: int,
-                 model: str = 'tiny.en',
-                 **model_params):
+
+    def __init__(self, duration: int, model: str = "tiny.en", **model_params):
         self.duration = duration
         self.sample_rate = pywhispercpp.constants.WHISPER_SAMPLE_RATE
         self.channels = 1
@@ -46,10 +46,14 @@ class Recording:
 
     def start(self):
         logging.info(f"Start recording for {self.duration}s ...")
-        recording = sd.rec(int(self.duration * self.sample_rate), samplerate=self.sample_rate, channels=self.channels)
+        recording = sd.rec(
+            int(self.duration * self.sample_rate),
+            samplerate=self.sample_rate,
+            channels=self.channels,
+        )
         sd.wait()
-        logging.info('Duration finished')
-        res = self.pwcpp_model.transcribe(recording)
+        logging.info("Duration finished")
+        _res = self.pwcpp_model.transcribe(recording)
         self.pwcpp_model.print_timings()
 
 
@@ -57,8 +61,14 @@ def _main():
     print(__header__)
     parser = argparse.ArgumentParser(description="", allow_abbrev=True)
     # Positional args
-    parser.add_argument('duration', type=int, help=f"duration in seconds")
-    parser.add_argument('-m', '--model', default='tiny.en', type=str, help="Whisper.cpp model, default to %(default)s")
+    parser.add_argument("duration", type=int, help="Duration in seconds")
+    parser.add_argument(
+        "-m",
+        "--model",
+        default="tiny.en",
+        type=str,
+        help="Whisper.cpp model, default to %(default)s",
+    )
 
     args = parser.parse_args()
 
@@ -66,5 +76,5 @@ def _main():
     myrec.start()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     _main()

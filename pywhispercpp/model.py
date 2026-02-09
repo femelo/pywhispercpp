@@ -109,10 +109,15 @@ class Model:
             if Path(vad_model).is_file():
                 self.vad_model_path = vad_model
             elif self.vad:
-                self.vad_model_path = utils.download_model(vad_model, models_dir, vad=True)
+                self.vad_model_path = utils.download_model(
+                    vad_model, models_dir, vad=True
+                )
             else:
                 pass
             params["vad_model_path"] = self.vad_model_path
+
+        # Handle extract_probability parameter
+        self.extract_probability = params.pop("extract_probability", False)
 
         self._ctx = None
         self._sampling_strategy = (
@@ -165,7 +170,10 @@ class Model:
 
         self.vad = params.get("vad", self.vad)
         if self.vad:
-            vad_model = params.pop("vad_model", self.vad_model_path) or constants.AVAILABLE_VAD_MODELS[0]
+            vad_model = (
+                params.pop("vad_model", self.vad_model_path)
+                or constants.AVAILABLE_VAD_MODELS[0]
+            )
             if Path(vad_model).is_file():
                 self.vad_model_path = vad_model
             else:

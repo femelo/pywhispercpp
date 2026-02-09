@@ -449,6 +449,7 @@ PYBIND11_MODULE(_pywhispercpp, m) {
             .def_readwrite("ptsum", &whisper_token_data::ptsum)
             .def_readwrite("t0", &whisper_token_data::t0)
             .def_readwrite("t1", &whisper_token_data::t1)
+            .def_readwrite("t_dtw", &whisper_token_data::t_dtw)
             .def_readwrite("vlen", &whisper_token_data::vlen);
 
     py::class_<whisper_model_loader_wrapper>(m,"whisper_model_loader")
@@ -632,6 +633,7 @@ PYBIND11_MODULE(_pywhispercpp, m) {
                 << "language=" << (self.language ? self.language : "None") << ", "
                 << "detect_language=" << (self.detect_language ? "True" : "False") << ", "
                 << "suppress_blank=" << (self.suppress_blank ? "True" : "False") << ", "
+                << "suppress_nst=" << (self.suppress_nst ? "True" : "False") << ", "
                 << "temperature=" << self.temperature << ", "
                 << "max_initial_ts=" << self.max_initial_ts << ", "
                 << "length_penalty=" << self.length_penalty << ", "
@@ -719,6 +721,7 @@ PYBIND11_MODULE(_pywhispercpp, m) {
                 }
             })
         .def_readwrite("suppress_blank", &WhisperFullParamsWrapper::suppress_blank)
+        .def_readwrite("suppress_nst", &WhisperFullParamsWrapper::suppress_nst)
         .def_readwrite("temperature", &WhisperFullParamsWrapper::temperature)
         .def_readwrite("max_initial_ts", &WhisperFullParamsWrapper::max_initial_ts)
         .def_readwrite("length_penalty", &WhisperFullParamsWrapper::length_penalty)

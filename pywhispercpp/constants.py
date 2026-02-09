@@ -206,9 +206,9 @@ PARAMS_SCHEMA = {  # as exactly presented in whisper.cpp
         "options": None,
         "default": True,
     },
-    "suppress_non_speech_tokens": {
+    "suppress_nst": {
         "type": bool,
-        "description": "common decoding parameters",
+        "description": "suppress non speech tokens",
         "options": None,
         "default": False,
     },
@@ -297,4 +297,17 @@ PARAMS_SCHEMA = {  # as exactly presented in whisper.cpp
         "options": None,
         "default": True,
     },
+}
+
+PARAMS_MAPPING = {
+    "greedy.best_of": "best_of",
+    "beam_search.beam_size": "beam_size",
+    "beam_search.patience": "patience",
+    "vad_model_path": "vad_model",
+    "vad_params.threshold": "vad_threshold",
+    "vad_params.min_speech_duration_ms": "vad_min_speech_duration_ms",
+    "vad_params.min_silence_duration_ms": "vad_min_silence_duration_ms",
+    "vad_params.max_speech_duration_s": "vad_max_speech_duration_s",
+    "vad_params.speech_pad_ms": "vad_speech_pad_ms",
+    "vad_params.samples_overlap": "vad_samples_overlap",
 }
