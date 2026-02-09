@@ -1,22 +1,38 @@
+import importlib.metadata
+import os
 import sys
 import threading
 from datetime import datetime
 
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-    QFileDialog, QProgressBar, QLabel, QFrame,
-    QSizePolicy, QTableWidget, QTableWidgetItem, QHeaderView,
-    QGroupBox, QFormLayout, QComboBox, QLineEdit, QCheckBox,
-    QSpinBox, QDoubleSpinBox, QToolButton, QDialog, QMenu  # Import QMenu
-)
 from PyQt5.QtCore import Qt, pyqtSignal, QObject
-import os
-import importlib.metadata
-
-__version__ = importlib.metadata.version('pywhispercpp')
+from PyQt5.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QDoubleSpinBox,
+    QFileDialog,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMenu,
+    QProgressBar,
+    QPushButton,
+    QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from pywhispercpp.model import Model, Segment
-from pywhispercpp.utils import output_txt, output_srt, output_vtt, output_csv  # Import utilities
+from pywhispercpp.utils import output_csv, output_srt, output_vtt
+
+__version__ = importlib.metadata.version("pywhispercpp")
 
 
 # --- Available Models ---
@@ -24,23 +40,51 @@ from pywhispercpp.utils import output_txt, output_srt, output_vtt, output_csv  #
 MODEL_SIZE_ORDER = {"tiny": 0, "base": 1, "small": 2, "medium": 3, "large": 4}
 
 UNSORTED_MODELS = [
-    "base", "base-q5_1", "base-q8_0", "base.en", "base.en-q5_1",
-    "base.en-q8_0", "large-v1", "large-v2", "large-v2-q5_0",
-    "large-v2-q8_0", "large-v3", "large-v3-q5_0", "large-v3-turbo",
-    "large-v3-turbo-q5_0", "large-v3-turbo-q8_0", "medium",
-    "medium-q5_0", "medium-q8_0", "medium.en", "medium.en-q5_0",
-    "medium.en-q8_0", "small", "small-q5_1", "small-q8_0", "small.en",
-    "small.en-q5_1", "small.en-q8_0", "tiny", "tiny-q5_1", "tiny-q8_0",
-    "tiny.en", "tiny.en-q5_1", "tiny.en-q8_0",
+    "base",
+    "base-q5_1",
+    "base-q8_0",
+    "base.en",
+    "base.en-q5_1",
+    "base.en-q8_0",
+    "large-v1",
+    "large-v2",
+    "large-v2-q5_0",
+    "large-v2-q8_0",
+    "large-v3",
+    "large-v3-q5_0",
+    "large-v3-turbo",
+    "large-v3-turbo-q5_0",
+    "large-v3-turbo-q8_0",
+    "medium",
+    "medium-q5_0",
+    "medium-q8_0",
+    "medium.en",
+    "medium.en-q5_0",
+    "medium.en-q8_0",
+    "small",
+    "small-q5_1",
+    "small-q8_0",
+    "small.en",
+    "small.en-q5_1",
+    "small.en-q8_0",
+    "tiny",
+    "tiny-q5_1",
+    "tiny-q8_0",
+    "tiny.en",
+    "tiny.en-q5_1",
+    "tiny.en-q8_0",
 ]
 
 
 # Custom sort key function
 def get_model_sort_key(model_name):
     # Extract the base model name (e.g., "tiny.en" -> "tiny", "large-v3-turbo" -> "large")
-    base_name = model_name.split('.')[0].split('-')[0]
+    base_name = model_name.split(".")[0].split("-")[0]
     # Return a tuple for multi-level sorting: (size_order, full_model_name_for_secondary_sort)
-    return (MODEL_SIZE_ORDER.get(base_name, 99), model_name)  # 99 for any unexpected names
+    return (
+        MODEL_SIZE_ORDER.get(base_name, 99),
+        model_name,
+    )  # 99 for any unexpected names
 
 
 # Sort the models
@@ -243,6 +287,7 @@ class WorkerSignals(QObject):
     - progress: int (0-100)
     - status_update: str
     """
+
     finished = pyqtSignal()
     error = pyqtSignal(tuple)
     segment = pyqtSignal(Segment)
@@ -253,7 +298,6 @@ class WorkerSignals(QObject):
 
 # --- Worker Thread for Transcription ---
 class PyWhisperCppWorker(threading.Thread):
-
     def __init__(self, audio_file_path, model_name, **transcribe_params):
         super().__init__()
         self.audio_file_path = audio_file_path
@@ -272,10 +316,13 @@ class PyWhisperCppWorker(threading.Thread):
 
             # pywhispercpp will download the specified model if not found
             model_init_params = {}
-            if 'n_threads' in self.transcribe_params and self.transcribe_params['n_threads'] is not None:
-                model_init_params['n_threads'] = self.transcribe_params['n_threads']
+            if (
+                "n_threads" in self.transcribe_params
+                and self.transcribe_params["n_threads"] is not None
+            ):
+                model_init_params["n_threads"] = self.transcribe_params["n_threads"]
                 # Remove from transcribe_params as it's a model init param
-                del self.transcribe_params['n_threads']
+                del self.transcribe_params["n_threads"]
 
             model = Model(self.model_name, **model_init_params)
 
@@ -286,17 +333,19 @@ class PyWhisperCppWorker(threading.Thread):
                     raise RuntimeError("Transcription manually stopped")
                 self.signals.segment.emit(segment)
 
-            segments = model.transcribe(self.audio_file_path,
-                                        new_segment_callback=new_segment_callback,
-                                        progress_callback=lambda progress: self.signals.progress.emit(progress),
-                                        **self.transcribe_params)
+            segments = model.transcribe(
+                self.audio_file_path,
+                new_segment_callback=new_segment_callback,
+                progress_callback=lambda progress: self.signals.progress.emit(progress),
+                **self.transcribe_params,
+            )
 
             self.signals.status_update.emit("Transcription complete!")
             self.signals.result.emit(segments)
 
         except Exception as e:
             print(e)
-            self.signals.status_update.emit(f"Error: {str(e)}")
+            self.signals.status_update.emit(f"Error: {e}")
             self.signals.error.emit((type(e), e, str(e)))
         finally:
             self._is_running = False
@@ -332,7 +381,7 @@ class TranscriptionApp(QWidget):
         """
         Initializes the user interface of the application.
         """
-        self.setWindowTitle('PyWhisperCpp Simple GUI')
+        self.setWindowTitle("PyWhisperCpp Simple GUI")
         self.setGeometry(100, 100, 450, 500)
         # Apply the updated stylesheet
         self.setStyleSheet(STYLESHEET)
@@ -347,7 +396,9 @@ class TranscriptionApp(QWidget):
         header_layout = QHBoxLayout()
         title_label = QLabel("PyWhisperCpp Simple GUI")  # Updated main title label
         title_label.setObjectName("TitleLabel")  # Add objectName for styling
-        title_label.setAlignment(Qt.AlignLeft)  # Keep title centered within its allocated space
+        title_label.setAlignment(
+            Qt.AlignLeft
+        )  # Keep title centered within its allocated space
 
         # Adding stretch before and after title to center it
         # header_layout.addStretch()
@@ -414,7 +465,9 @@ class TranscriptionApp(QWidget):
 
         # Language Input
         self.language_input = QLineEdit()
-        self.language_input.setPlaceholderText('e.g., "en", "es", or leave empty for auto-detect')
+        self.language_input.setPlaceholderText(
+            'e.g., "en", "es", or leave empty for auto-detect'
+        )
         self.language_input.setText("")  # Default to auto-detect
         settings_form_layout.addRow("Language:", self.language_input)
 
@@ -425,12 +478,16 @@ class TranscriptionApp(QWidget):
 
         # N Threads Spinbox
         self.n_threads_spinbox = QSpinBox()
-        self.n_threads_spinbox.setRange(1, os.cpu_count() if os.cpu_count() else 8)  # Max threads based on CPU cores
+        self.n_threads_spinbox.setRange(
+            1, os.cpu_count() if os.cpu_count() else 8
+        )  # Max threads based on CPU cores
         self.n_threads_spinbox.setValue(4)  # Sensible default
         settings_form_layout.addRow("Number of Threads:", self.n_threads_spinbox)
 
         # No Context Checkbox
-        self.no_context_checkbox = QCheckBox("No Context (do not use past transcription)")
+        self.no_context_checkbox = QCheckBox(
+            "No Context (do not use past transcription)"
+        )
         self.no_context_checkbox.setChecked(False)  # Default
         settings_form_layout.addRow("No Context:", self.no_context_checkbox)
 
@@ -448,7 +505,9 @@ class TranscriptionApp(QWidget):
 
         # --- Transcription Button ---
         self.transcribe_button = QPushButton("Transcribe")
-        self.transcribe_button.setObjectName("TranscribeButton")  # Add objectName for styling
+        self.transcribe_button.setObjectName(
+            "TranscribeButton"
+        )  # Add objectName for styling
         self.transcribe_button.setEnabled(False)
         self.transcribe_button.clicked.connect(self.start_transcription)
         main_layout.addWidget(self.transcribe_button)
@@ -501,10 +560,18 @@ class TranscriptionApp(QWidget):
         self.export_action_vtt = self.export_menu.addAction("VTT Subtitle (.vtt)")
         self.export_action_csv = self.export_menu.addAction("CSV (.csv)")
 
-        self.export_action_txt.triggered.connect(lambda: self.export_transcription("txt"))
-        self.export_action_srt.triggered.connect(lambda: self.export_transcription("srt"))
-        self.export_action_vtt.triggered.connect(lambda: self.export_transcription("vtt"))
-        self.export_action_csv.triggered.connect(lambda: self.export_transcription("csv"))
+        self.export_action_txt.triggered.connect(
+            lambda: self.export_transcription("txt")
+        )
+        self.export_action_srt.triggered.connect(
+            lambda: self.export_transcription("srt")
+        )
+        self.export_action_vtt.triggered.connect(
+            lambda: self.export_transcription("vtt")
+        )
+        self.export_action_csv.triggered.connect(
+            lambda: self.export_transcription("csv")
+        )
 
         self.export_button.setMenu(self.export_menu)
         output_buttons_layout.addWidget(self.export_button)
@@ -512,14 +579,18 @@ class TranscriptionApp(QWidget):
         # Copy Text Button
         self.copy_text_button = QPushButton("Copy Text")
         self.copy_text_button.setEnabled(False)  # Initially disabled
-        self.copy_text_button.clicked.connect(self.copy_all_text_to_clipboard)  # Connect to new method
+        self.copy_text_button.clicked.connect(
+            self.copy_all_text_to_clipboard
+        )  # Connect to new method
         output_buttons_layout.addWidget(self.copy_text_button)
 
         main_layout.addLayout(output_buttons_layout)
 
         # --- Status Bar at the very bottom ---
         self.status_bar_label = QLabel("Ready.")
-        self.status_bar_label.setObjectName("status_bar_label")  # Add objectName for styling
+        self.status_bar_label.setObjectName(
+            "status_bar_label"
+        )  # Add objectName for styling
         self.status_bar_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.status_bar_label.setContentsMargins(5, 2, 5, 2)
         main_layout.addWidget(self.status_bar_label)
@@ -528,8 +599,10 @@ class TranscriptionApp(QWidget):
 
     def toggle_settings_visibility(self):
         """Toggles the visibility of the settings content frame and updates the arrow."""
+        assert self.settings_content_frame is not None
         is_visible = self.settings_content_frame.isVisible()
         self.settings_content_frame.setVisible(not is_visible)
+        assert self.toggle_settings_button is not None
         if not is_visible:
             self.toggle_settings_button.setArrowType(Qt.DownArrow)
         else:
@@ -541,9 +614,7 @@ class TranscriptionApp(QWidget):
         """
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select a Media File", "",
-            "All Files (*)",
-            options=options
+            self, "Select a Media File", "", "All Files (*)", options=options
         )
         if file_path:
             self.selected_file_path = file_path
@@ -551,8 +622,11 @@ class TranscriptionApp(QWidget):
             self.transcribe_button.setEnabled(True)
             self.results_table.setRowCount(0)
             self.export_button.setEnabled(False)  # Disable export until transcription
+            assert self.copy_text_button is not None
             self.copy_text_button.setEnabled(False)  # Disable copy until transcription
-            self.update_status("File selected: " + os.path.basename(file_path))  # Update new status bar
+            self.update_status(
+                "File selected: " + os.path.basename(file_path)
+            )  # Update new status bar
 
     def start_transcription(self):
         """
@@ -566,27 +640,36 @@ class TranscriptionApp(QWidget):
             self.progress_bar.setValue(0)
             self.results_table.setRowCount(0)
             self.export_button.setEnabled(False)  # Disable export during transcription
+            assert self.copy_text_button is not None
             self.copy_text_button.setEnabled(False)  # Disable copy during transcription
             self.update_status("Starting transcription...")
             self.segments = []  # Clear segments for new transcription
 
             # Gather settings from GUI widgets
+            assert self.model_combo is not None
+            assert self.language_input is not None
+            assert self.translate_checkbox is not None
+            assert self.n_threads_spinbox is not None
+            assert self.no_context_checkbox is not None
+            assert self.temperature_spinbox is not None
             selected_model = self.model_combo.currentText()
             transcribe_params = {
-                "language": self.language_input.text() if self.language_input.text() else None,
+                "language": self.language_input.text()
+                if self.language_input.text()
+                else None,
                 "translate": self.translate_checkbox.isChecked(),
                 "n_threads": self.n_threads_spinbox.value(),
                 "no_context": self.no_context_checkbox.isChecked(),
                 "temperature": self.temperature_spinbox.value(),
             }
             # Remove None values to use pywhispercpp defaults where applicable
-            transcribe_params = {k: v for k, v in transcribe_params.items() if v is not None}
+            transcribe_params = {
+                k: v for k, v in transcribe_params.items() if v is not None
+            }
 
             # Create and start the worker thread
             self.whisper_thread = PyWhisperCppWorker(
-                self.selected_file_path,
-                selected_model,
-                **transcribe_params
+                self.selected_file_path, selected_model, **transcribe_params
             )
             self.whisper_thread.signals.result.connect(self.on_transcription_result)
             self.whisper_thread.signals.segment.connect(self.on_new_segment)
@@ -608,10 +691,13 @@ class TranscriptionApp(QWidget):
     def update_progress(self, value):
         self.progress_bar.setValue(value)
         # Update status bar with progress if not already showing a specific message
-        if not self.status_bar_label.text().startswith("Error:") and \
-                not self.status_bar_label.text().startswith("Finished.") and \
-                not self.status_bar_label.text().startswith("Text exported") and \
-                not self.status_bar_label.text().startswith("Text copied"):  # Updated check
+        assert self.status_bar_label is not None
+        if (
+            not self.status_bar_label.text().startswith("Error:")
+            and not self.status_bar_label.text().startswith("Finished.")
+            and not self.status_bar_label.text().startswith("Text exported")
+            and not self.status_bar_label.text().startswith("Text copied")
+        ):  # Updated check
             self.update_status(f"Progress: {value}%")
 
     def update_status(self, status_text):
@@ -649,8 +735,13 @@ class TranscriptionApp(QWidget):
         Stores segments for export.
         """
         self.segments = segments  # Store segments
-        self.export_button.setEnabled(True if segments else False)  # Enable export if segments exist
-        self.copy_text_button.setEnabled(True if segments else False)  # Enable copy if segments exist
+        self.export_button.setEnabled(
+            True if segments else False
+        )  # Enable export if segments exist
+        assert self.copy_text_button is not None
+        self.copy_text_button.setEnabled(
+            True if segments else False
+        )  # Enable copy if segments exist
 
     def on_transcription_finished(self):
         """
@@ -671,7 +762,7 @@ class TranscriptionApp(QWidget):
         """
         Displays an error message if transcription fails.
         """
-        exctype, value, tb = err
+        _exctype, value, _tb = err
         error_message = f"Error: {value}"
         self.update_status(error_message)  # Update new status bar
         self.on_transcription_finished()
@@ -691,15 +782,20 @@ class TranscriptionApp(QWidget):
             "csv": "CSV (Comma Separated Values) Files (*.csv)",
         }
 
-        default_file_name = os.path.basename(self.selected_file_path).rsplit('.', 1)[
-                                0] + f".{format_type}" if self.selected_file_path else f"transcription.{format_type}"
+        default_file_name = (
+            os.path.basename(self.selected_file_path).rsplit(".", 1)[0]
+            + f".{format_type}"
+            if self.selected_file_path
+            else f"transcription.{format_type}"
+        )
 
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getSaveFileName(
-            self, f"Save Transcription as {format_type.upper()}",
+            self,
+            f"Save Transcription as {format_type.upper()}",
             default_file_name,
             file_dialog_filter.get(format_type, "All Files (*)"),
-            options=options
+            options=options,
         )
 
         if file_path:
@@ -711,28 +807,36 @@ class TranscriptionApp(QWidget):
                     for segment in self.segments:
                         all_text.append(segment.text.strip())
                     output_txt_content = "\n".join(all_text)
-                    with open(file_path, 'w', encoding='utf-8') as f:
+                    with open(file_path, "w", encoding="utf-8") as f:
                         f.write(output_txt_content)
 
                 elif format_type == "srt":
                     if output_srt:
                         output_srt(self.segments, file_path)
                     else:
-                        raise ImportError("pywhispercpp.utils.output_srt not available.")
+                        raise ImportError(
+                            "pywhispercpp.utils.output_srt not available."
+                        )
                 elif format_type == "vtt":
                     if output_vtt:
                         output_vtt(self.segments, file_path)
                     else:
-                        raise ImportError("pywhispercpp.utils.output_vtt not available.")
+                        raise ImportError(
+                            "pywhispercpp.utils.output_vtt not available."
+                        )
                 elif format_type == "csv":
                     if output_csv:
                         # For CSV, we need to pass a list of lists/tuples representing rows
                         # pywhispercpp.utils.output_csv expects a list of segments and a file path
                         output_csv(self.segments, file_path)
                     else:
-                        raise ImportError("pywhispercpp.utils.output_csv not available.")
+                        raise ImportError(
+                            "pywhispercpp.utils.output_csv not available."
+                        )
 
-                self.update_status(f"Transcription successfully exported to {os.path.basename(file_path)}")
+                self.update_status(
+                    f"Transcription successfully exported to {os.path.basename(file_path)}"
+                )
             except Exception as e:
                 self.update_status(f"Error exporting to {format_type.upper()}: {e}")
         else:
@@ -798,5 +902,5 @@ def _main():
     sys.exit(app.exec_())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     _main()

@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 A simple example showcasing the use of `pywhispercpp` as an assistant.
 The idea is to use a `VAD` to detect speech (in this example we used webrtcvad), and when speech is detected
 we run the inference.
 """
+
 import argparse
 import importlib.metadata
 import queue
@@ -18,7 +18,7 @@ import webrtcvad
 import logging
 from pywhispercpp.model import Model
 
-__version__ = importlib.metadata.version('pywhispercpp')
+__version__ = importlib.metadata.version("pywhispercpp")
 
 __header__ = f"""
 =====================================
@@ -42,15 +42,16 @@ class Assistant:
     ```
     """
 
-    def __init__(self,
-                 model='tiny',
-                 input_device: int = None,
-                 silence_threshold: int = 8,
-                 q_threshold: int = 16,
-                 block_duration: int = 30,
-                 commands_callback: Callable[[str], None] = None,
-                 **model_params):
-
+    def __init__(
+        self,
+        model="tiny",
+        input_device: int | None = None,
+        silence_threshold: int = 8,
+        q_threshold: int = 16,
+        block_duration: int = 30,
+        commands_callback: Callable[[str], None] | None = None,
+        **model_params,
+    ):
         """
         :param model: whisper.cpp model name or a direct path to a`ggml` model
         :param input_device: The input device (aka microphone), keep it None to take the default
@@ -74,13 +75,15 @@ class Assistant:
         self.q_threshold = q_threshold
         self._silence_counter = 0
 
-        self.pwccp_model = Model(model,
-                                 print_realtime=False,
-                                 print_progress=False,
-                                 print_timestamps=False,
-                                 single_segment=True,
-                                 no_context=True,
-                                 **model_params)
+        self.pwccp_model = Model(
+            model,
+            print_realtime=False,
+            print_progress=False,
+            print_timestamps=False,
+            single_segment=True,
+            no_context=True,
+            **model_params,
+        )
         self.commands_callback = commands_callback
 
     def _audio_callback(self, indata, frames, time, status):
@@ -88,10 +91,12 @@ class Assistant:
         This is called (from a separate thread) for each audio block.
         """
         if status:
-            logging.warning(F"underlying audio stack warning:{status}")
+            logging.warning(f"underlying audio stack warning:{status}")
 
         assert frames == self.block_size
-        audio_data = map(lambda x: (x + 1) / 2, indata)  # normalize from [-1,+1] to [0,1]
+        audio_data = map(
+            lambda x: (x + 1) / 2, indata
+        )  # normalize from [-1,+1] to [0,1]
         audio_data = np.fromiter(audio_data, np.float16)
         audio_data = audio_data.tobytes()
         detection = self.vad.is_speech(audio_data, self.sample_rate)
@@ -107,16 +112,17 @@ class Assistant:
                 self._silence_counter += 1
 
     def _transcribe_speech(self):
-        logging.info(f"Speech detected ...")
+        logging.info("Speech detected ...")
         audio_data = np.array([])
         while self.q.qsize() > 0:
             # get all the data from the q
             audio_data = np.append(audio_data, self.q.get())
         # Appending zeros to the audio data as a workaround for small audio packets (small commands)
-        audio_data = np.concatenate([audio_data, np.zeros((int(self.sample_rate) + 10))])
+        audio_data = np.concatenate([audio_data, np.zeros(int(self.sample_rate) + 10)])
         # running the inference
-        self.pwccp_model.transcribe(audio_data,
-                                    new_segment_callback=self._new_segment_callback)
+        self.pwccp_model.transcribe(
+            audio_data, new_segment_callback=self._new_segment_callback
+        )
 
     def _new_segment_callback(self, seg):
         if self.commands_callback:
@@ -127,16 +133,16 @@ class Assistant:
         Use this function to start the assistant
         :return: None
         """
-        logging.info(f"Starting Assistant ...")
+        logging.info("Starting Assistant ...")
         with sd.InputStream(
-                device=self.input_device,  # the default input device
-                channels=self.channels,
-                samplerate=constants.WHISPER_SAMPLE_RATE,
-                blocksize=self.block_size,
-                callback=self._audio_callback):
-
+            device=self.input_device,  # the default input device
+            channels=self.channels,
+            samplerate=constants.WHISPER_SAMPLE_RATE,
+            blocksize=self.block_size,
+            callback=self._audio_callback,
+        ):
             try:
-                logging.info(f"Assistant is listening ... (CTRL+C to stop)")
+                logging.info("Assistant is listening ... (CTRL+C to stop)")
                 while True:
                     time.sleep(0.1)
             except KeyboardInterrupt:
@@ -150,24 +156,46 @@ class Assistant:
 def _main():
     parser = argparse.ArgumentParser(description="", allow_abbrev=True)
     # Positional args
-    parser.add_argument('-m', '--model', default='tiny.en', type=str, help="Whisper.cpp model, default to %(default)s")
-    parser.add_argument('-ind', '--input_device', type=int, default=None,
-                        help=f'Id of The input device (aka microphone)\n'
-                             f'available devices {Assistant.available_devices()}')
-    parser.add_argument('-st', '--silence_threshold', default=16, type=int,
-                        help=f"he duration of silence after which the inference will be running, default to %(default)s")
-    parser.add_argument('-bd', '--block_duration', default=30,
-                        help=f"minimum time audio updates in ms, default to %(default)s")
+    parser.add_argument(
+        "-m",
+        "--model",
+        default="tiny.en",
+        type=str,
+        help="Whisper.cpp model, default to %(default)s",
+    )
+    parser.add_argument(
+        "-ind",
+        "--input_device",
+        type=int,
+        default=None,
+        help=f"Id of The input device (aka microphone)\n"
+        f"available devices {Assistant.available_devices()}",
+    )
+    parser.add_argument(
+        "-st",
+        "--silence_threshold",
+        default=16,
+        type=int,
+        help="The duration of silence after which the inference will be running, default to %(default)s",
+    )
+    parser.add_argument(
+        "-bd",
+        "--block_duration",
+        default=30,
+        help="Minimum time audio updates in ms, default to %(default)s",
+    )
 
     args = parser.parse_args()
 
-    my_assistant = Assistant(model=args.model,
-                             input_device=args.input_device,
-                             silence_threshold=args.silence_threshold,
-                             block_duration=args.block_duration,
-                             commands_callback=print)
+    my_assistant = Assistant(
+        model=args.model,
+        input_device=args.input_device,
+        silence_threshold=args.silence_threshold,
+        block_duration=args.block_duration,
+        commands_callback=print,
+    )
     my_assistant.start()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     _main()
